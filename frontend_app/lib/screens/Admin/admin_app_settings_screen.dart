@@ -3,7 +3,7 @@ import 'package:google_fonts/google_fonts.dart';
 
 class AdminAppSettingsScreen extends StatefulWidget {
   const AdminAppSettingsScreen({super.key});
-q
+
   @override
   State<AdminAppSettingsScreen> createState() => _AdminAppSettingsScreenState();
 }
@@ -12,7 +12,6 @@ class _AdminAppSettingsScreenState extends State<AdminAppSettingsScreen> {
   static const Color primaryPurple = Color(0xFF5A4CA9);
   static const Color bgLightGrey = Color(0xFFF8F8F8);
 
-  // State (Kondisi) untuk tombol Switch (Tiruan/Mockup)
   bool _isNotificationEnabled = true;
   bool _isDarkMode = false;
 
@@ -48,7 +47,6 @@ class _AdminAppSettingsScreenState extends State<AdminAppSettingsScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // 1. KELOMPOK AKUN & KEAMANAN
               _buildSectionTitle('AKUN & KEAMANAN'),
               Container(
                 decoration: BoxDecoration(
@@ -79,8 +77,6 @@ class _AdminAppSettingsScreenState extends State<AdminAppSettingsScreen> {
                 ),
               ),
               const SizedBox(height: 28),
-
-              // 2. KELOMPOK PREFERENSI APLIKASI
               _buildSectionTitle('PREFERENSI'),
               Container(
                 decoration: BoxDecoration(
@@ -122,8 +118,6 @@ class _AdminAppSettingsScreenState extends State<AdminAppSettingsScreen> {
                 ),
               ),
               const SizedBox(height: 28),
-
-              // 3. KELOMPOK INFORMASI
               _buildSectionTitle('INFORMASI'),
               Container(
                 decoration: BoxDecoration(
@@ -154,32 +148,6 @@ class _AdminAppSettingsScreenState extends State<AdminAppSettingsScreen> {
                 ),
               ),
               const SizedBox(height: 40),
-
-              // VERSI APLIKASI
-              Center(
-                child: Column(
-                  children: [
-                    Text(
-                      'Genshin Import v1.0.0',
-                      style: GoogleFonts.inter(
-                        color: Colors.black45,
-                        fontSize: 12,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      '© 2026 BINUS University Software Laboratory',
-                      style: GoogleFonts.inter(
-                        color: Colors.black38,
-                        fontSize: 10,
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(height: 20),
             ],
           ),
         ),
@@ -187,7 +155,7 @@ class _AdminAppSettingsScreenState extends State<AdminAppSettingsScreen> {
     );
   }
 
-  // WIDGET BANTUAN: Judul Kelompok (Section)
+  // Helper Widgets...
   Widget _buildSectionTitle(String title) {
     return Padding(
       padding: const EdgeInsets.only(left: 12, bottom: 12),
@@ -203,7 +171,6 @@ class _AdminAppSettingsScreenState extends State<AdminAppSettingsScreen> {
     );
   }
 
-  // WIDGET BANTUAN: Baris Menu Navigasi Biasa
   Widget _buildNavigationTile({
     required IconData icon,
     required String title,
@@ -212,7 +179,6 @@ class _AdminAppSettingsScreenState extends State<AdminAppSettingsScreen> {
   }) {
     return InkWell(
       onTap: onTap,
-      borderRadius: BorderRadius.circular(20),
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
         child: Row(
@@ -238,8 +204,7 @@ class _AdminAppSettingsScreenState extends State<AdminAppSettingsScreen> {
                       color: Colors.black87,
                     ),
                   ),
-                  if (subtitle != null) ...[
-                    const SizedBox(height: 2),
+                  if (subtitle != null)
                     Text(
                       subtitle,
                       style: GoogleFonts.inter(
@@ -248,7 +213,6 @@ class _AdminAppSettingsScreenState extends State<AdminAppSettingsScreen> {
                         color: Colors.black45,
                       ),
                     ),
-                  ],
                 ],
               ),
             ),
@@ -263,7 +227,6 @@ class _AdminAppSettingsScreenState extends State<AdminAppSettingsScreen> {
     );
   }
 
-  // WIDGET BANTUAN: Baris Menu dengan Switch/Sakelar
   Widget _buildSwitchTile({
     required IconData icon,
     required String title,
@@ -296,21 +259,15 @@ class _AdminAppSettingsScreenState extends State<AdminAppSettingsScreen> {
           Switch(
             value: value,
             onChanged: onChanged,
-            activeThumbColor: Colors.white,
             activeTrackColor: primaryPurple,
-            inactiveThumbColor: Colors.white,
-            inactiveTrackColor: Colors.black12,
           ),
         ],
       ),
     );
   }
 
-  // WIDGET BANTUAN: Garis Pemisah
-  Widget _buildDivider() {
-    return const Padding(
-      padding: EdgeInsets.symmetric(horizontal: 16),
-      child: Divider(height: 1, color: Colors.black12),
-    );
-  }
+  Widget _buildDivider() => const Padding(
+    padding: EdgeInsets.symmetric(horizontal: 16),
+    child: Divider(height: 1, color: Colors.black12),
+  );
 }

@@ -30,7 +30,10 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
+  google_fonts: ^8.1.0
   http: ^1.2.0 # Tambahkan ini
+  image_picker: ^1.2.2
+  lucide_icons: ^0.257.0
   shared_preferences: ^2.2.3 # Untuk menyimpan token nanti
 
   # The following adds the Cupertino Icons font to your application.
