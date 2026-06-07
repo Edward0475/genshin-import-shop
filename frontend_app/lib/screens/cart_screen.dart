@@ -334,7 +334,12 @@ class CartScreen extends StatelessWidget {
             false,
             () => Navigator.pushReplacementNamed(context, '/menu'),
           ),
-          _navTab(Icons.manage_search, 'Kategori', false, () {}),
+          _navTab(
+            Icons.manage_search,
+            'Kategori',
+            false,
+            () => Navigator.pushReplacementNamed(context, '/category'),
+          ),
           _navTab(Icons.shopping_cart, 'Cart', true, () {}),
           _navTab(
             Icons.favorite_outline,
