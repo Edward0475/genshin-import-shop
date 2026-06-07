@@ -6,17 +6,17 @@ import { AuthGuard } from '@nestjs/passport';
 export class AuthController {
   constructor(private readonly authService: AuthService) {}
 
-  // Rute 1: Mengarahkan user ke halaman Login Google
   @Get('google')
   @UseGuards(AuthGuard('google'))
-  async googleAuth(@Req() req) {}
+  async googleAuth(@Req() req) {
+    // Rute ini akan otomatis melempar user ke halaman login Google
+  }
 
-  // Rute 2: Menerima callback dari Google
   @Get('google/callback')
   @UseGuards(AuthGuard('google'))
   async googleAuthRedirect(@Req() req, @Res() res) {
-    const user = await this.authService.googleLogin(req);
-    // Setelah dapat data user, kita kirimkan token/respon ke frontend
-    return res.json(user);
+    // Google akan mengembalikan data ke rute ini
+    const tokenData = await this.authService.googleLogin(req);
+    return res.json(tokenData);
   }
 }

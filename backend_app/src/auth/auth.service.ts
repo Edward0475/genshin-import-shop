@@ -1,19 +1,24 @@
 import { Injectable } from '@nestjs/common';
+import { JwtService } from '@nestjs/jwt';
 
 @Injectable()
 export class AuthService {
-  // Tambahkan fungsi ini
-  async googleLogin(req) {
+  constructor(private jwtService: JwtService) {}
+
+  async googleLogin(req: any) {
     if (!req.user) {
-      return 'Tidak ada user dari Google';
+      return 'No user from google';
     }
 
-    // DI SINI: Kamu bisa tambahkan logika untuk simpan user ke Database (UsersService)
-    // Jika user belum ada, daftarkan. Jika sudah ada, langsung buat token JWT.
-    
+    const payload = { 
+      email: req.user.email, 
+      sub: req.user.firstName 
+    };
+
     return {
-      message: 'User info from Google',
-      user: req.user
+      message: 'Berhasil login dengan Google OAuth',
+      user: req.user,
+      accessToken: this.jwtService.sign(payload),
     };
   }
 }
