@@ -30,11 +30,8 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
-
-  google_fonts: ^6.2.1
-  lucide_icons: ^0.257.0
-  cupertino_icons: ^1.0.8
-  image_picker: ^1.2.2
+  http: ^1.2.0 # Tambahkan ini
+  shared_preferences: ^2.2.3 # Untuk menyimpan token nanti
 
   # The following adds the Cupertino Icons font to your application.
   # Use with the CupertinoIcons class for iOS style icons.
@@ -119,3 +116,4 @@ flutter:
   #
   # For details regarding fonts from package dependencies,
   # see https://flutter.dev/to/font-from-package
+
