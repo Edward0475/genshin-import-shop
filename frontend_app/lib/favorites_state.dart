@@ -22,3 +22,4 @@ class FavoritesState {
     items.value = currentFavs; // Simpan pembaruan
   }
 }
+// Catatan: Pastikan data produk yang dikirim ke toggleFavorite memiliki struktur yang konsisten, misalnya:
