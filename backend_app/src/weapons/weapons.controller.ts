@@ -1,14 +1,16 @@
-import { Controller, Get, Post, Put, Delete, Body, Param } from '@nestjs/common';
+import { Controller, Get, Post, Put, Delete, Body, Param, UseGuards } from '@nestjs/common';
+import { AuthGuard } from '@nestjs/passport'; // Pastikan package @nestjs/passport terinstall
 import { WeaponsService } from './weapons.service';
 import { Weapon } from './weapon.entity';
 
-@Controller('weapons') // Ini yang membuat URL menjadi /weapons
+@UseGuards(AuthGuard('jwt')) // PINTU DIKUNCI: Semua akses ke route di bawah ini wajib Token
+@Controller('weapons')
 export class WeaponsController {
   constructor(private readonly weaponsService: WeaponsService) {}
 
   @Get()
   findAll() {
-    return this.weaponsService.findAll(); // Memanggil fungsi GET
+    return this.weaponsService.findAll();
   }
 
   @Get(':id')

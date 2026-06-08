@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 // Jika UserSession error karena belum dibuat, kamu bisa komen baris ini dan logic di dalamnya
 import '../user_session.dart';
+// PENTING: Pastikan path import ini sesuai dengan lokasi file auth_service.dart kamu
+import '../../services/auth_service.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -15,14 +17,11 @@ class _LoginScreenState extends State<LoginScreen> {
   late TextEditingController _emailController;
   final TextEditingController _passwordController = TextEditingController();
 
-  static const Color primaryPurple = Color(
-    0xFF5B4EB5,
-  ); // Ungu sesuai desain Figma
+  static const Color primaryPurple = Color(0xFF5B4EB5);
 
   @override
   void initState() {
     super.initState();
-    // Mengambil session jika ada (sesuai kodingan lamamu)
     _emailController = TextEditingController(text: UserSession().email);
   }
 
@@ -33,16 +32,13 @@ class _LoginScreenState extends State<LoginScreen> {
     super.dispose();
   }
 
-  // --- BAGIAN INI YANG KITA UBAH UNTUK LOGIKA ADMIN ---
-  // --- BAGIAN INI YANG KITA UBAH UNTUK LOGIKA ADMIN & VALIDASI ---
-  void _handleSignIn() {
-    final session = UserSession();
+  // --- LOGIKA LOGIN REAL KE BACKEND ---
+  Future<void> _handleSignIn() async {
     final inputEmail = _emailController.text.trim();
     final inputPassword = _passwordController.text.trim();
 
-    // [TAMBAHAN BARU] 1. VALIDASI INPUT KOSONG
+    // 1. Validasi Input
     if (inputEmail.isEmpty || inputPassword.isEmpty) {
-      // Munculkan notifikasi merah di bawah layar
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
@@ -50,34 +46,61 @@ class _LoginScreenState extends State<LoginScreen> {
             style: GoogleFonts.inter(fontWeight: FontWeight.bold),
           ),
           backgroundColor: Colors.red.shade600,
-          behavior: SnackBarBehavior.floating, // Agar tampilannya melayang rapi
+          behavior: SnackBarBehavior.floating,
         ),
       );
-      return; // Hentikan proses eksekusi ke bawah
+      return;
     }
 
-    // 2. CEK JIKA YANG LOGIN ADALAH ADMIN
-    if (inputEmail == 'admin' && inputPassword == 'admin123') {
-      Navigator.pushReplacementNamed(context, '/admin');
-    }
-    // 3. CEK JIKA YANG LOGIN ADALAH PEMBELI BIASA
-    else {
-      session.email = inputEmail.toUpperCase();
-      if (inputEmail.toUpperCase() != 'ANDI@GMAIL.COM' &&
-          session.name == 'ANDI') {
-        session.name = inputEmail.split('@')[0].toUpperCase();
+    // Tampilkan Loading
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(const SnackBar(content: Text('Logging in...')));
+
+    // 2. Panggil API Login
+    String? token = await AuthService.login(inputEmail, inputPassword);
+
+    if (!mounted) return; // Mencegah error jika widget di-dispose
+    ScaffoldMessenger.of(context).hideCurrentSnackBar();
+
+    if (token != null) {
+      // 3. Login Berhasil - SIMPAN TOKEN
+      await AuthService.saveToken(token);
+      print("LOGIN BERHASIL! Token yang disimpan: $token");
+
+      // --- UBAH BAGIAN INI MENJADI LEBIH FLEKSIBEL ---
+      // Ubah input menjadi huruf kecil semua agar tidak sensitif huruf besar/kecil
+      String safeEmail = inputEmail.toLowerCase().trim();
+
+      if (safeEmail == 'admin' || safeEmail == 'admin@gmail.com') {
+        // JIKA ADMIN -> Pergi ke halaman Dashboard Admin
+        Navigator.pushReplacementNamed(context, '/admin');
+      } else {
+        // JIKA USER BIASA -> Pergi ke halaman Menu Pembeli
+        final session = UserSession();
+        session.email = inputEmail.toUpperCase();
+        if (inputEmail.toUpperCase() != 'ANDI@GMAIL.COM' &&
+            session.name == 'ANDI') {
+          session.name = inputEmail.split('@')[0].toUpperCase();
+        }
+        Navigator.pushReplacementNamed(context, '/menu');
       }
-      // Langsung menuju menu pembeli
-      Navigator.pushReplacementNamed(context, '/menu');
+      // ----------------------------------------------
+    } else {
+      // 4. Login Gagal
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Login gagal, periksa email/password'),
+          backgroundColor: Colors.red,
+        ),
+      );
     }
   }
-  // ----------------------------------------------------
-  // ----------------------------------------------------
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF6F6F6), // Background putih keabu-abuan
+      backgroundColor: const Color(0xFFF6F6F6),
       body: SafeArea(
         child: Center(
           child: SingleChildScrollView(
@@ -88,16 +111,13 @@ class _LoginScreenState extends State<LoginScreen> {
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                // 1. Logo Genshin Import
                 Image.asset(
-                  'assets/images/LOGO.png', // Pastikan ini sudah sesuai dengan asset yang ada
+                  'assets/images/LOGO.png',
                   height: 200,
-                  errorBuilder: (context, error, stackTrace) =>
-                      const Icon(Icons.image_not_supported, size: 500),
+                  errorBuilder: (c, e, s) =>
+                      const Icon(Icons.image_not_supported, size: 200),
                 ),
                 const SizedBox(height: 0),
-
-                // 2. Title
                 Text(
                   'WELCOME BACK',
                   style: GoogleFonts.inter(
@@ -117,8 +137,6 @@ class _LoginScreenState extends State<LoginScreen> {
                   ),
                 ),
                 const SizedBox(height: 32),
-
-                // 3. Text Fields
                 _buildPillTextField(
                   hint: 'email',
                   controller: _emailController,
@@ -130,8 +148,6 @@ class _LoginScreenState extends State<LoginScreen> {
                   isObscured: true,
                 ),
                 const SizedBox(height: 16),
-
-                // 4. Remember Me & Forgot Password
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
@@ -143,18 +159,8 @@ class _LoginScreenState extends State<LoginScreen> {
                           child: Checkbox(
                             value: _rememberMe,
                             activeColor: primaryPurple,
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(4),
-                            ),
-                            side: const BorderSide(
-                              color: Colors.black87,
-                              width: 1.5,
-                            ),
-                            onChanged: (val) {
-                              setState(() {
-                                _rememberMe = val ?? false;
-                              });
-                            },
+                            onChanged: (val) =>
+                                setState(() => _rememberMe = val ?? false),
                           ),
                         ),
                         const SizedBox(width: 8),
@@ -169,8 +175,7 @@ class _LoginScreenState extends State<LoginScreen> {
                       ],
                     ),
                     GestureDetector(
-                      onTap:
-                          () {}, // Tambahkan navigasi forgot password jika ada
+                      onTap: () {},
                       child: Text(
                         'Forgot password?',
                         style: GoogleFonts.inter(
@@ -183,8 +188,6 @@ class _LoginScreenState extends State<LoginScreen> {
                   ],
                 ),
                 const SizedBox(height: 24),
-
-                // 5. Login Button
                 SizedBox(
                   width: double.infinity,
                   height: 52,
@@ -195,7 +198,7 @@ class _LoginScreenState extends State<LoginScreen> {
                       elevation: 0,
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(16),
-                      ), // Kapsul yang sedikit kotak
+                      ),
                     ),
                     child: Text(
                       'LOG IN',
@@ -209,8 +212,6 @@ class _LoginScreenState extends State<LoginScreen> {
                   ),
                 ),
                 const SizedBox(height: 24),
-
-                // 6. Divider (Or continue with)
                 Text(
                   'Or continue with',
                   style: GoogleFonts.inter(
@@ -220,8 +221,6 @@ class _LoginScreenState extends State<LoginScreen> {
                   ),
                 ),
                 const SizedBox(height: 16),
-
-                // 7. Google Button
                 SizedBox(
                   width: double.infinity,
                   height: 52,
@@ -229,10 +228,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     onPressed: () {},
                     style: OutlinedButton.styleFrom(
                       backgroundColor: Colors.white,
-                      side: const BorderSide(
-                        color: Colors.black,
-                        width: 1,
-                      ), // Border hitam
+                      side: const BorderSide(color: Colors.black, width: 1),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(16),
                       ),
@@ -240,7 +236,6 @@ class _LoginScreenState extends State<LoginScreen> {
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        // Gambar G dari Google (URL sementara, bisa diganti asset lokal)
                         Image.asset('assets/images/Google.png', height: 24),
                         const SizedBox(width: 12),
                         Text(
@@ -256,12 +251,8 @@ class _LoginScreenState extends State<LoginScreen> {
                   ),
                 ),
                 const SizedBox(height: 48),
-
-                // 8. Bottom Register Link
                 GestureDetector(
-                  onTap: () {
-                    Navigator.pushNamed(context, '/register');
-                  },
+                  onTap: () => Navigator.pushNamed(context, '/register'),
                   child: Text(
                     'Belum punya akun?',
                     style: GoogleFonts.inter(
@@ -279,7 +270,6 @@ class _LoginScreenState extends State<LoginScreen> {
     );
   }
 
-  // Widget custom untuk Text Field yang melengkung dan bergaris hitam
   Widget _buildPillTextField({
     required String hint,
     required TextEditingController controller,

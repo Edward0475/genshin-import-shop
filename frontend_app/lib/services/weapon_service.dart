@@ -1,22 +1,35 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'api_config.dart';
+import 'auth_service.dart';
 
 class WeaponService {
+  // FUNGSI HELPER UNTUK HEADER AUTH (SUDAH DIPERBAIKI)
+  static Future<Map<String, String>> getAuthHeaders() async {
+    String? token = await AuthService.getToken();
+    print("DEBUG: Token yang dikirim ke backend adalah: $token");
+    // Jika token null (belum login), gunakan placeholder agar tidak crash
+    // Ganti "TOKEN_ANDA_DISINI" dengan token asli dari Postman jika masih ingin bypass
+    String finalToken = token ?? "TOKEN_ANDA_DISINI";
+
+    return {
+      'Content-Type': 'application/json',
+      'Authorization': 'Bearer $finalToken',
+    };
+  }
+
   // 1. Mengambil semua data senjata
   static Future<dynamic> getAllWeapons() async {
     try {
       final response = await http.get(
         Uri.parse('${ApiConfig.baseUrl}/weapons'),
+        headers: await getAuthHeaders(),
       );
 
       if (response.statusCode == 200) {
-        var data = json.decode(response.body);
-        return data;
+        return json.decode(response.body);
       } else {
-        throw Exception(
-          'Gagal mengambil data dari server: ${response.statusCode}',
-        );
+        throw Exception('Gagal mengambil data: ${response.statusCode}');
       }
     } catch (e) {
       throw Exception('Gagal terhubung ke backend: $e');
@@ -28,7 +41,7 @@ class WeaponService {
     try {
       final response = await http.post(
         Uri.parse('${ApiConfig.baseUrl}/weapons'),
-        headers: {'Content-Type': 'application/json'},
+        headers: await getAuthHeaders(),
         body: json.encode(weaponData),
       );
 
@@ -36,7 +49,7 @@ class WeaponService {
         throw Exception('Gagal menambah data: ${response.statusCode}');
       }
     } catch (e) {
-      throw Exception('Kesalahan jaringan saat menambah data: $e');
+      throw Exception('Kesalahan jaringan: $e');
     }
   }
 
@@ -48,7 +61,7 @@ class WeaponService {
     try {
       final response = await http.put(
         Uri.parse('${ApiConfig.baseUrl}/weapons/$id'),
-        headers: {'Content-Type': 'application/json'},
+        headers: await getAuthHeaders(),
         body: json.encode(weaponData),
       );
 
@@ -56,23 +69,23 @@ class WeaponService {
         throw Exception('Gagal mengedit data: ${response.statusCode}');
       }
     } catch (e) {
-      throw Exception('Kesalahan jaringan saat mengedit data: $e');
+      throw Exception('Kesalahan jaringan: $e');
     }
   }
 
-  // 4. Fungsi Hapus (DELETE) - TERBARU
+  // 4. Fungsi Hapus (DELETE)
   static Future<void> deleteWeapon(String id) async {
     try {
       final response = await http.delete(
         Uri.parse('${ApiConfig.baseUrl}/weapons/$id'),
-        headers: {'Content-Type': 'application/json'},
+        headers: await getAuthHeaders(),
       );
 
       if (response.statusCode != 200) {
         throw Exception('Gagal menghapus data: ${response.statusCode}');
       }
     } catch (e) {
-      throw Exception('Kesalahan jaringan saat menghapus data: $e');
+      throw Exception('Kesalahan jaringan: $e');
     }
   }
 }
