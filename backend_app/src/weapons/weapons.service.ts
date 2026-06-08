@@ -30,10 +30,18 @@ export class WeaponsService {
     return this.weaponRepository.save(newWeapon);
   }
 
-  // Fungsi untuk PUT (Update Senjata)
+  // Fungsi untuk PUT (Update Senjata) - DENGAN FIX
   async update(id: number, updateData: Partial<Weapon>): Promise<Weapon> {
+    // 1. Pastikan data ada
     await this.findOne(id); 
-    await this.weaponRepository.update(id, updateData);
+
+    // 2. Bersihkan data: Buang field 'category' agar tidak error di Database
+    // Kita pakai destructuring untuk memisahkan category
+    const { category, ...safeUpdateData } = updateData as any;
+
+    // 3. Update menggunakan data yang sudah bersih (tanpa 'category')
+    await this.weaponRepository.update(id, safeUpdateData);
+    
     return this.findOne(id);
   }
 
