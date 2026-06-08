@@ -9,6 +9,9 @@ import 'product_detailadmin_screen.dart';
 import 'admin_more_screen.dart';
 import 'admin_notification_screen.dart';
 
+// ---> IMPORT SERVICE BACKEND <---
+import '../../services/weapon_service.dart';
+
 class AdminDashboardScreen extends StatefulWidget {
   const AdminDashboardScreen({super.key});
 
@@ -19,6 +22,22 @@ class AdminDashboardScreen extends StatefulWidget {
 class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
   static const primaryPurple = Color(0xFF5A4CA9);
 
+  // Future untuk mengambil data dari backend
+  late Future<dynamic> _weaponsFuture;
+
+  @override
+  void initState() {
+    super.initState();
+    _refreshData();
+  }
+
+  // Fungsi untuk menyegarkan data dari database
+  void _refreshData() {
+    setState(() {
+      _weaponsFuture = WeaponService.getAllWeapons();
+    });
+  }
+
   final List<Map<String, String>> categories = [
     {'name': 'Bow', 'image': 'assets/images/Bow.png'},
     {'name': 'Claymore', 'image': 'assets/images/claymore.png'},
@@ -26,51 +45,6 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
     {'name': 'Catalyst', 'image': 'assets/images/catalyst.png'},
     {'name': 'Polearm', 'image': 'assets/images/poleyean.png'},
     {'name': 'Artifacts', 'image': 'assets/images/Artifact.png'},
-  ];
-
-  List<Map<String, String>> weapons = [
-    {
-      'id': 'w1',
-      'name': 'Kagotsurube Isshin',
-      'price': 'RP.300000',
-      'image': 'assets/images/Kagotsurube.png',
-      'description': 'Pedang kutukan mematikan yang haus darah.',
-    },
-    {
-      'id': 'w2',
-      'name': 'Narzissenkreuz Pneuma',
-      'price': 'RP.300000',
-      'image': 'assets/images/Pneuma.png',
-      'description': 'Pedang suci peninggalan pahlawan kuno Fontaine.',
-    },
-    {
-      'id': 'w3',
-      'name': 'Hamayumi Bow',
-      'price': 'RP.300000',
-      'image': 'assets/images/Hamayumi.png',
-      'description': 'Busur panah Inazuma yang sangat kuat dan presisi.',
-    },
-    {
-      'id': 'w4',
-      'name': 'Jade Winged Spear',
-      'price': 'RP.300000',
-      'image': 'assets/images/Winged.png',
-      'description': 'Tombak tajam warisan pelindung Liyue.',
-    },
-    {
-      'id': 'w5',
-      'name': 'Amenoma Kageuchi',
-      'price': 'RP.300000',
-      'image': 'assets/images/Amenoma.png',
-      'description': 'Katana andalan para samurai elit.',
-    },
-    {
-      'id': 'w6',
-      'name': 'Wolf\'s Gravestone',
-      'price': 'RP.300000',
-      'image': 'assets/images/Wolf.png',
-      'description': 'Pedang berat milik pejuang legendaris dari utara.',
-    },
   ];
 
   Widget _buildProductImage(String imagePath) {
@@ -291,202 +265,264 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                         ),
                         const SizedBox(height: 16),
 
-                        // WEAPON GRID
-                        GridView.builder(
-                          shrinkWrap: true,
-                          physics: const NeverScrollableScrollPhysics(),
-                          gridDelegate:
-                              const SliverGridDelegateWithFixedCrossAxisCount(
-                                crossAxisCount: 2,
-                                crossAxisSpacing: 14,
-                                mainAxisSpacing: 16,
-                                childAspectRatio: 0.72,
-                              ),
-                          itemCount: weapons.length,
-                          itemBuilder: (context, idx) {
-                            final item = weapons[idx];
+                        // ---> FUTURE BUILDER TERINTEGRASI BACKEND <---
+                        FutureBuilder<dynamic>(
+                          future: _weaponsFuture,
+                          builder: (context, snapshot) {
+                            if (snapshot.connectionState ==
+                                ConnectionState.waiting) {
+                              return const Center(
+                                child: CircularProgressIndicator(),
+                              );
+                            }
+                            if (snapshot.hasError) {
+                              return Center(
+                                child: Text(
+                                  'Gagal memuat data: \n${snapshot.error}',
+                                  textAlign: TextAlign.center,
+                                  style: const TextStyle(color: Colors.red),
+                                ),
+                              );
+                            }
 
-                            int? weaponIdVal = int.tryParse(
-                              item['id']!.replaceAll(RegExp(r'[^0-9]'), ''),
-                            );
-                            String rawPrice = item['price']!.replaceAll(
-                              RegExp(r'[^0-9]'),
-                              '',
-                            );
-                            double priceVal = double.tryParse(rawPrice) ?? 0;
+                            // Parsing respons dari Node.js (Aman untuk berbagai bentuk JSON)
+                            var rawData = snapshot.data;
+                            List<dynamic> weapons = [];
+                            if (rawData is List) {
+                              weapons = rawData;
+                            } else if (rawData is Map &&
+                                rawData.containsKey('data')) {
+                              weapons = rawData['data'] is List
+                                  ? rawData['data']
+                                  : [];
+                            } else if (rawData is Map &&
+                                rawData.containsKey('weapons')) {
+                              weapons = rawData['weapons'] is List
+                                  ? rawData['weapons']
+                                  : [];
+                            }
 
-                            return Material(
-                              color: Colors.transparent,
-                              child: InkWell(
-                                borderRadius: BorderRadius.circular(20),
-                                splashColor: const Color(0x335A4CA9),
-                                highlightColor: Colors.transparent,
-                                onTap: () {
-                                  Navigator.push(
-                                    context,
-                                    MaterialPageRoute(
-                                      builder: (context) =>
-                                          const ProductDetailAdminScreen(),
-                                      settings: RouteSettings(
-                                        arguments: {
-                                          'id': item['id'],
-                                          'name': item['name'],
-                                          'price': item['price'],
-                                          'image': item['image'],
-                                          'description':
-                                              item['description'] ??
-                                              'Tidak ada deskripsi',
-                                        },
-                                      ),
-                                    ),
-                                  );
-                                },
-                                child: Container(
-                                  decoration: BoxDecoration(
-                                    color: const Color(0xFFF0F1F5),
-                                    borderRadius: BorderRadius.circular(20),
-                                    border: Border.all(
-                                      color: const Color(0x0D000000),
-                                    ),
+                            if (weapons.isEmpty) {
+                              return const Center(
+                                child: Text("Belum ada senjata di Database."),
+                              );
+                            }
+
+                            return GridView.builder(
+                              shrinkWrap: true,
+                              physics: const NeverScrollableScrollPhysics(),
+                              gridDelegate:
+                                  const SliverGridDelegateWithFixedCrossAxisCount(
+                                    crossAxisCount: 2,
+                                    crossAxisSpacing: 14,
+                                    mainAxisSpacing: 16,
+                                    childAspectRatio: 0.72,
                                   ),
-                                  child: Column(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.start,
-                                    children: [
-                                      Expanded(
-                                        flex: 5,
-                                        child: Center(
-                                          child: Padding(
-                                            padding: const EdgeInsets.all(12.0),
-                                            child: _buildProductImage(
-                                              item['image']!,
-                                            ),
+                              itemCount: weapons.length,
+                              itemBuilder: (context, idx) {
+                                final item = weapons[idx];
+
+                                // Keamanan Parsing Data
+                                final String itemName =
+                                    item['name']?.toString() ?? 'Unknown';
+                                final String itemImage =
+                                    item['image']?.toString() ?? '';
+                                final String itemDesc =
+                                    item['description']?.toString() ??
+                                    'Tidak ada deskripsi';
+
+                                // Bersihkan string harga dari huruf/simbol agar bisa di-parse
+                                String rawPrice =
+                                    item['price']?.toString().replaceAll(
+                                      RegExp(r'[^0-9]'),
+                                      '',
+                                    ) ??
+                                    '0';
+                                double priceVal =
+                                    double.tryParse(rawPrice) ?? 0;
+                                int? weaponIdVal = int.tryParse(
+                                  item['id']?.toString().replaceAll(
+                                        RegExp(r'[^0-9]'),
+                                        '',
+                                      ) ??
+                                      '0',
+                                );
+
+                                return Material(
+                                  color: Colors.transparent,
+                                  child: InkWell(
+                                    borderRadius: BorderRadius.circular(20),
+                                    splashColor: const Color(0x335A4CA9),
+                                    highlightColor: Colors.transparent,
+                                    onTap: () async {
+                                      // Pergi ke Detail, jika ada perubahan tunggu hasilnya
+                                      await Navigator.push(
+                                        context,
+                                        MaterialPageRoute(
+                                          builder: (context) =>
+                                              const ProductDetailAdminScreen(),
+                                          settings: RouteSettings(
+                                            arguments: {
+                                              // ==========================================
+                                              // INI BAGIAN YANG DITAMBAHKAN .toString()
+                                              // ==========================================
+                                              'id':
+                                                  item['id']?.toString() ?? '',
+                                              'name': itemName,
+                                              'price':
+                                                  item['price']?.toString() ??
+                                                  '0',
+                                              'image': itemImage,
+                                              'description': itemDesc,
+                                            },
                                           ),
                                         ),
+                                      );
+                                      // Refresh layar setelah kembali dari Detail (siapa tahu ada edit/delete di sana)
+                                      _refreshData();
+                                    },
+                                    child: Container(
+                                      decoration: BoxDecoration(
+                                        color: const Color(0xFFF0F1F5),
+                                        borderRadius: BorderRadius.circular(20),
+                                        border: Border.all(
+                                          color: const Color(0x0D000000),
+                                        ),
                                       ),
-                                      Expanded(
-                                        flex: 3,
-                                        child: Container(
-                                          width: double.infinity,
-                                          decoration: const BoxDecoration(
-                                            color: Colors.white,
-                                            borderRadius: BorderRadius.only(
-                                              topLeft: Radius.circular(16),
-                                              topRight: Radius.circular(16),
-                                              bottomLeft: Radius.circular(20),
-                                              bottomRight: Radius.circular(20),
-                                            ),
-                                          ),
-                                          padding: const EdgeInsets.symmetric(
-                                            horizontal: 12,
-                                            vertical: 10,
-                                          ),
-                                          child: Column(
-                                            mainAxisAlignment:
-                                                MainAxisAlignment.center,
-                                            crossAxisAlignment:
-                                                CrossAxisAlignment.start,
-                                            children: [
-                                              Text(
-                                                item['name']!,
-                                                maxLines: 1,
-                                                overflow: TextOverflow.ellipsis,
-                                                style: GoogleFonts.inter(
-                                                  fontWeight: FontWeight.w900,
-                                                  fontSize: 10,
-                                                  color: Colors.black,
+                                      child: Column(
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
+                                        children: [
+                                          Expanded(
+                                            flex: 5,
+                                            child: Center(
+                                              child: Padding(
+                                                padding: const EdgeInsets.all(
+                                                  12.0,
+                                                ),
+                                                child: _buildProductImage(
+                                                  itemImage,
                                                 ),
                                               ),
-                                              const SizedBox(height: 8),
-                                              Row(
+                                            ),
+                                          ),
+                                          Expanded(
+                                            flex: 3,
+                                            child: Container(
+                                              width: double.infinity,
+                                              decoration: const BoxDecoration(
+                                                color: Colors.white,
+                                                borderRadius: BorderRadius.only(
+                                                  topLeft: Radius.circular(16),
+                                                  topRight: Radius.circular(16),
+                                                  bottomLeft: Radius.circular(
+                                                    20,
+                                                  ),
+                                                  bottomRight: Radius.circular(
+                                                    20,
+                                                  ),
+                                                ),
+                                              ),
+                                              padding:
+                                                  const EdgeInsets.symmetric(
+                                                    horizontal: 12,
+                                                    vertical: 10,
+                                                  ),
+                                              child: Column(
                                                 mainAxisAlignment:
-                                                    MainAxisAlignment
-                                                        .spaceBetween,
+                                                    MainAxisAlignment.center,
+                                                crossAxisAlignment:
+                                                    CrossAxisAlignment.start,
                                                 children: [
                                                   Text(
-                                                    item['price']!,
+                                                    itemName,
+                                                    maxLines: 1,
+                                                    overflow:
+                                                        TextOverflow.ellipsis,
                                                     style: GoogleFonts.inter(
                                                       fontWeight:
                                                           FontWeight.w900,
-                                                      fontSize: 12,
-                                                      color: primaryPurple,
+                                                      fontSize: 10,
+                                                      color: Colors.black,
                                                     ),
                                                   ),
-                                                  // ==========================================
-                                                  // PERBAIKAN TOMBOL EDIT SUPAYA SAVE DATA
-                                                  // ==========================================
-                                                  GestureDetector(
-                                                    onTap: () async {
-                                                      final editedWeapon = await Navigator.push(
-                                                        context,
-                                                        MaterialPageRoute(
-                                                          builder: (context) =>
-                                                              AddEditWeaponScreen(
-                                                                weaponId:
-                                                                    weaponIdVal,
-                                                                initialName:
-                                                                    item['name'],
-                                                                initialPrice:
-                                                                    priceVal,
-                                                                initialImage:
-                                                                    item['image'],
-                                                                initialDesc:
-                                                                    item['description'],
-                                                              ),
+                                                  const SizedBox(height: 8),
+                                                  Row(
+                                                    mainAxisAlignment:
+                                                        MainAxisAlignment
+                                                            .spaceBetween,
+                                                    children: [
+                                                      Text(
+                                                        // Format ulang agar rapi
+                                                        _formatPrice(
+                                                          priceVal.toInt(),
                                                         ),
-                                                      );
-
-                                                      // TANGKAP DAN UPDATE DATA JIKA DI-SAVE
-                                                      if (editedWeapon !=
-                                                              null &&
-                                                          mounted) {
-                                                        setState(() {
-                                                          weapons[idx] = {
-                                                            'id': item['id']!,
-                                                            'name':
-                                                                editedWeapon['name']
-                                                                    .toString(),
-                                                            'price': _formatPrice(
-                                                              editedWeapon['price']
-                                                                  .toInt(),
+                                                        style:
+                                                            GoogleFonts.inter(
+                                                              fontWeight:
+                                                                  FontWeight
+                                                                      .w900,
+                                                              fontSize: 12,
+                                                              color:
+                                                                  primaryPurple,
                                                             ),
-                                                            'image':
-                                                                editedWeapon['image']
-                                                                    .toString(),
-                                                            'description':
-                                                                editedWeapon['description']
-                                                                    .toString(),
-                                                          };
-                                                        });
-                                                        ScaffoldMessenger.of(
-                                                          context,
-                                                        ).showSnackBar(
-                                                          const SnackBar(
-                                                            content: Text(
-                                                              'Perubahan berhasil disimpan!',
+                                                      ),
+                                                      // TOMBOL EDIT MEMANGGIL DATABASE
+                                                      GestureDetector(
+                                                        onTap: () async {
+                                                          final result = await Navigator.push(
+                                                            context,
+                                                            MaterialPageRoute(
+                                                              builder: (context) =>
+                                                                  AddEditWeaponScreen(
+                                                                    weaponId:
+                                                                        weaponIdVal,
+                                                                    initialName:
+                                                                        itemName,
+                                                                    initialPrice:
+                                                                        priceVal,
+                                                                    initialImage:
+                                                                        itemImage,
+                                                                    initialDesc:
+                                                                        itemDesc,
+                                                                  ),
                                                             ),
-                                                            backgroundColor:
-                                                                Colors.blue,
-                                                          ),
-                                                        );
-                                                      }
-                                                    },
-                                                    child: const Icon(
-                                                      Icons.edit_outlined,
-                                                      color: Colors.black87,
-                                                      size: 18,
-                                                    ),
+                                                          );
+                                                          // Jika proses Edit berhasil, REFRESH DATABASE
+                                                          if (result == true ||
+                                                              result != null) {
+                                                            _refreshData();
+                                                            ScaffoldMessenger.of(
+                                                              context,
+                                                            ).showSnackBar(
+                                                              const SnackBar(
+                                                                content: Text(
+                                                                  'Perubahan berhasil disimpan!',
+                                                                ),
+                                                                backgroundColor:
+                                                                    Colors.blue,
+                                                              ),
+                                                            );
+                                                          }
+                                                        },
+                                                        child: const Icon(
+                                                          Icons.edit_outlined,
+                                                          color: Colors.black87,
+                                                          size: 18,
+                                                        ),
+                                                      ),
+                                                    ],
                                                   ),
                                                 ],
                                               ),
-                                            ],
+                                            ),
                                           ),
-                                        ),
+                                        ],
                                       ),
-                                    ],
+                                    ),
                                   ),
-                                ),
-                              ),
+                                );
+                              },
                             );
                           },
                         ),
@@ -512,34 +548,22 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
           children: [
             _buildNavTab(Icons.storefront, 'Menu', true, primaryPurple, () {}),
 
+            // TOMBOL ADD MEMANGGIL DATABASE
             GestureDetector(
               onTap: () async {
-                final newWeaponData = await Navigator.push(
+                final result = await Navigator.push(
                   context,
                   MaterialPageRoute(
                     builder: (context) => const AddEditWeaponScreen(),
                   ),
                 );
 
-                if (newWeaponData != null) {
-                  if (!mounted) return;
-
-                  setState(() {
-                    weapons.add({
-                      'id': 'w${weapons.length + 1}',
-                      'name': newWeaponData['name'].toString(),
-                      // Memanggil fungsi format agar harga baru langsung rapi
-                      'price': _formatPrice(newWeaponData['price'].toInt()),
-                      'image': newWeaponData['image'].toString(),
-                      'description': newWeaponData['description'].toString(),
-                    });
-                  });
-
+                // Jika proses Add berhasil di layar sana, REFRESH DATABASE di sini
+                if (result == true || result != null) {
+                  _refreshData();
                   ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text(
-                        '${newWeaponData['name']} berhasil ditambahkan!',
-                      ),
+                    const SnackBar(
+                      content: Text('Data berhasil ditambahkan ke Database!'),
                       backgroundColor: Colors.green,
                     ),
                   );

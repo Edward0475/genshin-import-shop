@@ -9,7 +9,7 @@ import { UsersModule } from './users/users.module';
 
 @Module({
   imports: [
-    // 2. Tambahkan ConfigModule di urutan PALING ATAS
+    
     ConfigModule.forRoot({
       isGlobal: true, 
     }),
@@ -20,9 +20,9 @@ import { UsersModule } from './users/users.module';
       port: 3306,
       username: 'root',
       password: '',
-      database: 'genshin_import', // Pastikan nama DB ini sama dengan di phpMyAdmin
+      database: 'genshin_import', 
       entities: [Weapon, User],
-      synchronize: false, // Catatan: Jika ingin kolom baru (seperti description) otomatis terbuat di DB, ubah ini jadi true
+      synchronize: false, // 
     }),
     WeaponsModule,
     AuthModule,

@@ -1,7 +1,9 @@
-import 'dart:io'; // Tambahan untuk membaca file gambar
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:image_picker/image_picker.dart'; // Tambahan untuk upload gambar
+import 'package:image_picker/image_picker.dart';
+// ---> PERBAIKAN IMPORT: Mundur 2 folder (dari Admin -> screens -> lib) lalu masuk ke services
+import '../../services/weapon_service.dart';
 
 class AddEditWeaponScreen extends StatefulWidget {
   final int? weaponId;
@@ -39,7 +41,8 @@ class _AddEditWeaponScreenState extends State<AddEditWeaponScreen> {
   late int stock;
   late String imageUrl;
 
-  // --- TAMBAHAN UNTUK UPLOAD GAMBAR ---
+  bool _isLoading = false;
+
   File? _selectedImage;
   final ImagePicker _picker = ImagePicker();
 
@@ -48,18 +51,23 @@ class _AddEditWeaponScreenState extends State<AddEditWeaponScreen> {
       final XFile? pickedFile = await _picker.pickImage(
         source: ImageSource.gallery,
       );
+
+      // PERBAIKAN: Cek apakah widget masih aktif sebelum update UI
+      if (!mounted) return;
+
       if (pickedFile != null) {
         setState(() {
           _selectedImage = File(pickedFile.path);
         });
       }
     } catch (e) {
+      // PERBAIKAN: Cek apakah widget masih aktif sebelum munculin SnackBar
+      if (!mounted) return;
       ScaffoldMessenger.of(
         context,
       ).showSnackBar(const SnackBar(content: Text('Gagal mengambil gambar')));
     }
   }
-  // ------------------------------------
 
   final List<Map<String, String>> categories = [
     {'name': 'Bow', 'image': 'assets/images/Bow.png'},
@@ -122,9 +130,8 @@ class _AddEditWeaponScreenState extends State<AddEditWeaponScreen> {
           physics: const BouncingScrollPhysics(),
           child: Column(
             children: [
-              // 1. IMAGE SECTION DENGAN FITUR UPLOAD
               GestureDetector(
-                onTap: _pickImage, // Panggil fungsi upload saat ditekan
+                onTap: _pickImage,
                 child: Container(
                   width: double.infinity,
                   height: 230,
@@ -140,13 +147,12 @@ class _AddEditWeaponScreenState extends State<AddEditWeaponScreen> {
                       bottomLeft: Radius.circular(32),
                       bottomRight: Radius.circular(32),
                     ),
-                    child: _buildImagePreview(), // Fungsi render gambar
+                    child: _buildImagePreview(),
                   ),
                 ),
               ),
               const SizedBox(height: 16),
 
-              // 2. INPUT FIELDS
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 16.0),
                 child: _buildInputField(
@@ -167,7 +173,6 @@ class _AddEditWeaponScreenState extends State<AddEditWeaponScreen> {
               ),
               const SizedBox(height: 12),
 
-              // 3. CATEGORY
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 16.0),
                 child: Container(
@@ -254,8 +259,7 @@ class _AddEditWeaponScreenState extends State<AddEditWeaponScreen> {
                   hintText: "e.g. 300000",
                   isBold: true,
                   isLarge: true,
-                  keyboardType: TextInputType
-                      .text, // Ubah ke text agar bisa terima input "Rp. xxx"
+                  keyboardType: TextInputType.text,
                 ),
               ),
               const SizedBox(height: 24),
@@ -267,7 +271,6 @@ class _AddEditWeaponScreenState extends State<AddEditWeaponScreen> {
     );
   }
 
-  // --- FUNGSI PREVIEW GAMBAR ---
   Widget _buildImagePreview() {
     if (_selectedImage != null) {
       return Image.file(
@@ -351,57 +354,112 @@ class _AddEditWeaponScreenState extends State<AddEditWeaponScreen> {
               child: SizedBox(
                 height: 48,
                 child: ElevatedButton(
-                  // =====================================================
-                  // PERBAIKAN: FUNGSI MENGIRIM DATA SAAT TOMBOL DITEKAN
-                  // =====================================================
-                  onPressed: () {
-                    if (_nameController.text.isEmpty ||
-                        _priceController.text.isEmpty) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content: Text('Nama dan Harga tidak boleh kosong!'),
-                        ),
-                      );
-                      return;
-                    }
+                  onPressed: _isLoading
+                      ? null
+                      : () async {
+                          if (_nameController.text.isEmpty ||
+                              _priceController.text.isEmpty) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                content: Text(
+                                  'Nama dan Harga tidak boleh kosong!',
+                                ),
+                                backgroundColor: Colors.red,
+                              ),
+                            );
+                            return;
+                          }
 
-                    // 1. Bersihkan Harga (Hapus huruf "Rp", spasi, dan titik)
-                    String cleanPrice = _priceController.text.replaceAll(
-                      RegExp(r'[^0-9]'),
-                      '',
-                    );
-                    double finalPrice = double.tryParse(cleanPrice) ?? 0.0;
+                          String cleanPrice = _priceController.text.replaceAll(
+                            RegExp(r'[^0-9]'),
+                            '',
+                          );
+                          double finalPrice =
+                              double.tryParse(cleanPrice) ?? 0.0;
 
-                    // 2. Kumpulkan data ke dalam Map
-                    final weaponData = {
-                      'id': widget.weaponId,
-                      'name': _nameController.text,
-                      'description':
-                          _descController.text, // Pastikan deskripsi masuk!
-                      'category': selectedCategory,
-                      'price': finalPrice, // Harga yang sudah bersih dari huruf
-                      'stock': stock,
-                      'image': _selectedImage?.path ?? imageUrl,
-                    };
+                          final weaponData = {
+                            'name': _nameController.text,
+                            'description': _descController.text,
+                            'category': selectedCategory,
+                            'price': finalPrice,
+                            'stock': stock,
+                            'image': _selectedImage?.path ?? imageUrl,
+                          };
 
-                    // 3. Kirim data kembali ke halaman sebelumnya
-                    Navigator.pop(context, weaponData);
-                  },
-                  // =====================================================
+                          setState(() => _isLoading = true);
+
+                          try {
+                            if (widget.weaponId == null) {
+                              await WeaponService.createWeapon(weaponData);
+
+                              // PERBAIKAN: Cek mounted sebelum SnackBar
+                              if (!mounted) return;
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(
+                                  content: Text(
+                                    'Senjata berhasil ditambahkan!',
+                                  ),
+                                  backgroundColor: Colors.green,
+                                ),
+                              );
+                            } else {
+                              await WeaponService.updateWeapon(
+                                widget.weaponId!,
+                                weaponData,
+                              );
+
+                              // PERBAIKAN: Cek mounted sebelum SnackBar
+                              if (!mounted) return;
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(
+                                  content: Text('Senjata berhasil diubah!'),
+                                  backgroundColor: Colors.green,
+                                ),
+                              );
+                            }
+
+                            // PERBAIKAN: Cek mounted sebelum Navigator.pop
+                            if (!mounted) return;
+                            Navigator.pop(context, true);
+                          } catch (e) {
+                            // PERBAIKAN: Cek mounted sebelum SnackBar error
+                            if (!mounted) return;
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: Text(e.toString()),
+                                backgroundColor: Colors.red,
+                              ),
+                            );
+                          } finally {
+                            // PERBAIKAN: Gunakan mounted untuk setState
+                            if (mounted) {
+                              setState(() => _isLoading = false);
+                            }
+                          }
+                        },
                   style: ElevatedButton.styleFrom(
                     backgroundColor: primaryPurple,
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(24),
                     ),
                   ),
-                  child: Text(
-                    'CONFIRM',
-                    style: GoogleFonts.inter(
-                      color: Colors.white,
-                      fontSize: 16,
-                      fontWeight: FontWeight.w900,
-                    ),
-                  ),
+                  child: _isLoading
+                      ? const SizedBox(
+                          width: 24,
+                          height: 24,
+                          child: CircularProgressIndicator(
+                            color: Colors.white,
+                            strokeWidth: 3,
+                          ),
+                        )
+                      : Text(
+                          'CONFIRM',
+                          style: GoogleFonts.inter(
+                            color: Colors.white,
+                            fontSize: 16,
+                            fontWeight: FontWeight.w900,
+                          ),
+                        ),
                 ),
               ),
             ),
@@ -439,7 +497,6 @@ class _AddEditWeaponScreenState extends State<AddEditWeaponScreen> {
           TextField(
             controller: controller,
             keyboardType: keyboardType,
-            // Jika butuh input paragraf (deskripsi), TextField bisa multilines
             maxLines: label.contains('Description') ? 3 : 1,
             style: GoogleFonts.inter(
               fontWeight: isBold ? FontWeight.w900 : FontWeight.w500,

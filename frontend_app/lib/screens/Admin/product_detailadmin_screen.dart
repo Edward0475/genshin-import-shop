@@ -1,9 +1,8 @@
 import 'dart:io'; // ---> TAMBAHAN PENTING UNTUK BACA GAMBAR GALERI <---
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-
-// Jika Anda sudah memiliki file AddEditWeaponScreen, pastikan di-import di sini
-// import 'add_deleted_edit_weapon_screen.dart';
+import '../../services/weapon_service.dart';
+import 'Add_deleted_editweapon_screen.dart';
 
 // ---> TAMBAHKAN IMPORT HALAMAN REVIEW ADMIN DI SINI <---
 import 'admin_reviews_screen.dart';
@@ -117,21 +116,78 @@ class _ProductDetailAdminScreenState extends State<ProductDetailAdminScreen> {
                             color: Colors.black,
                             size: 28,
                           ),
-                          onSelected: (String value) {
+                          // PENTING: Tambahkan 'async' di sini agar bisa menunggu proses hapus/edit
+                          onSelected: (String value) async {
                             if (value == 'edit') {
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(
-                                  content: Text(
-                                    'Beralih ke halaman Edit Produk...',
+                              // Logika Edit: Navigasi ke halaman Edit
+                              // Pastikan id di-parse ke int (jika ID di database adalah angka)
+                              final result = await Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) => AddEditWeaponScreen(
+                                    // Pastikan kelas ini sudah di-import
+                                    weaponId: int.tryParse(id) ?? 0,
+                                    initialName: name,
+                                    initialPrice:
+                                        double.tryParse(
+                                          price.replaceAll(
+                                            RegExp(r'[^0-9]'),
+                                            '',
+                                          ),
+                                        ) ??
+                                        0,
+                                    initialImage: image,
+                                    initialDesc: description,
                                   ),
                                 ),
                               );
+                              // Jika hasil edit berhasil, kembali ke dashboard dan refresh
+                              if (result == true) {
+                                Navigator.pop(context, true);
+                              }
                             } else if (value == 'delete') {
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(
-                                  content: Text('Produk berhasil dihapus'),
-                                ),
-                              );
+                              // Logika Delete: Dialog Konfirmasi
+                              bool confirm =
+                                  await showDialog(
+                                    context: context,
+                                    builder: (context) => AlertDialog(
+                                      title: const Text("Hapus Senjata"),
+                                      content: const Text(
+                                        "Apakah kamu yakin ingin menghapus data ini?",
+                                      ),
+                                      actions: [
+                                        TextButton(
+                                          onPressed: () =>
+                                              Navigator.pop(context, false),
+                                          child: const Text("Batal"),
+                                        ),
+                                        TextButton(
+                                          onPressed: () =>
+                                              Navigator.pop(context, true),
+                                          child: const Text(
+                                            "Hapus",
+                                            style: TextStyle(color: Colors.red),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ) ??
+                                  false;
+
+                              if (confirm) {
+                                try {
+                                  // Panggil fungsi hapus dari service
+                                  await WeaponService.deleteWeapon(id);
+                                  // Jika sukses, kembali ke dashboard dan kasih sinyal refresh
+                                  Navigator.pop(context, true);
+                                } catch (e) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(
+                                      content: Text('Gagal menghapus: $e'),
+                                    ),
+                                  );
+                                }
+                              }
                             }
                           },
                           itemBuilder: (BuildContext context) =>
